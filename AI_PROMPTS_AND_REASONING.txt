@@ -1,0 +1,144 @@
+AI Prompts & Reasoning Document
+================================
+SynapseAI Multi-Agent Research Assistant
+Submitted by: Eman Ul Huda
+
+---
+
+OVERVIEW
+--------
+This document details the AI prompts used in each agent and the reasoning behind design decisions.
+
+---
+
+AGENT 1: CLARITY AGENT
+-----------------------
+Prompt Purpose:
+Determine whether a user query is specific enough to research — checks for company name and clear intent.
+
+Prompt Used:
+"You are a Clarity Agent. Your job is to evaluate if a user's query is specific enough to research a company.
+[conversation history injected here]
+Current Query: [user query]
+Rules:
+- If the query mentions a specific company name AND has a clear intent → CLEAR
+- If query is vague → NEEDS_CLARIFICATION
+- If query is a follow-up referencing prior conversation → CLEAR
+Respond in EXACTLY this format:
+STATUS: clear
+or
+STATUS: needs_clarification
+QUESTION: [clarification question]"
+
+Reasoning:
+- Structured output format (STATUS: / QUESTION:) makes parsing deterministic and reliable
+- Injecting conversation history allows the agent to understand follow-up queries like "what about them?" in context
+- Explicit rules reduce LLM ambiguity about edge cases (nicknames, follow-ups)
+
+---
+
+AGENT 2: RESEARCH AGENT
+------------------------
+Prompt Purpose:
+Process raw Tavily search results into structured findings and assign a confidence score.
+
+Prompt Used:
+"You are a Research Agent. You have retrieved raw search data about a company.
+Analyze this data and produce structured research findings.
+User Query: [query]
+Raw Search Data: [tavily results]
+Your task:
+1. Extract key information relevant to the query
+2. Organize findings clearly
+3. Assign a confidence score (0-10) based on data quality:
+   - 8-10: Rich, recent, highly relevant
+   - 6-7: Good data with some gaps
+   - 4-5: Partial data
+   - 0-3: Very limited data
+Respond in this format:
+FINDINGS: [structured findings]
+CONFIDENCE: [0-10]"
+
+Reasoning:
+- Confidence scoring enables conditional routing — high confidence skips validation, low confidence triggers it
+- Structured format (FINDINGS: / CONFIDENCE:) enables reliable parsing
+- Explicit scoring rubric guides the LLM to be consistent rather than arbitrary
+
+---
+
+AGENT 3: VALIDATOR AGENT
+-------------------------
+Prompt Purpose:
+Independently assess whether research findings are sufficient to answer the user's original question.
+
+Prompt Used:
+"You are a Validator Agent. Assess whether the research findings are sufficient.
+User Query: [query]
+Confidence Score: [score]/10
+Research Attempts: [attempts]
+Research Findings: [findings]
+Evaluation criteria:
+- Does the data directly address what the user asked?
+- Is there enough substance for a meaningful response?
+- Are there critical gaps that would make the answer misleading?
+Respond: RESULT: sufficient / RESULT: insufficient + REASON"
+
+Reasoning:
+- Separation of concerns — Research Agent and Validator Agent have different perspectives on quality
+- Including research_attempts in the prompt prevents infinite loops (agent knows it's attempt 2 or 3)
+- Simple binary output (sufficient/insufficient) makes routing logic clean
+
+---
+
+AGENT 4: SYNTHESIS AGENT
+-------------------------
+Prompt Purpose:
+Generate a polished, structured final response that uses conversation history for personalization.
+
+Prompt Used:
+"You are a Synthesis Agent. Generate a comprehensive, well-structured response.
+Conversation History: [recent messages]
+Current Query: [query]
+Research Findings: [findings]
+Data Confidence: [score]/10
+Instructions:
+- Structure with clear sections using ## headers
+- Use conversation history to personalize follow-up responses
+- If confidence is low, acknowledge data limitations honestly
+- End with 2-3 suggested follow-up questions"
+
+Reasoning:
+- Injecting full conversation history enables coherent multi-turn responses
+- Explicit instruction to acknowledge low confidence prevents hallucination masking
+- Requesting follow-up question suggestions improves user experience and engagement
+- Markdown headers in output integrate cleanly with the Streamlit UI rendering
+
+---
+
+ARCHITECTURAL DECISIONS
+------------------------
+
+1. LangGraph StateGraph over simple chain:
+   - Enables true conditional routing between agents
+   - MemorySaver provides conversation persistence across turns
+   - Clean separation of state (what each agent reads/writes)
+
+2. Gemini 1.5 Flash as LLM:
+   - Fast inference for a 4-agent pipeline
+   - Free tier available for development
+   - Strong instruction-following for structured output prompts
+
+3. Tavily over raw web search:
+   - Returns clean, structured results with URLs
+   - Designed specifically for LLM consumption
+   - More reliable than scraping
+
+4. Structured output prompts (STATUS: / FINDINGS: / RESULT:):
+   - Avoids complex JSON parsing
+   - Robust to slight LLM variations in output
+   - Easy to debug and test
+
+5. Max 3 research attempts in validation loop:
+   - Prevents infinite loops on low-quality search topics
+   - After 3 attempts, proceeds to synthesis with best available data
+   - Communicated to user via confidence score display
