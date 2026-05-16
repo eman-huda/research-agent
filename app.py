@@ -11,7 +11,7 @@ from agents import run_research
 
 # ── Page Config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="SynapseAI — Research Assistant",
+    page_title="Research Assistant",
     page_icon="⬡",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -22,549 +22,765 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
-/* ── Reset & Base ── */
+:root {
+    color-scheme: dark;
+}
 * { box-sizing: border-box; }
-
 .stApp {
-    background: #080b12;
+    background: radial-gradient(circle at top left, rgba(62, 110, 255, 0.16), transparent 25%),
+                radial-gradient(circle at top right, rgba(107, 94, 255, 0.18), transparent 18%),
+                #050814;
     font-family: 'DM Sans', sans-serif;
 }
 
-/* ── Sidebar ── */
 section[data-testid="stSidebar"] {
-    background: #0c1018 !important;
-    border-right: 1px solid #1a2035;
+    background: rgba(6, 10, 24, 0.96) !important;
+    border-right: 1px solid rgba(255,255,255,0.08) !important;
 }
 section[data-testid="stSidebar"] * {
-    color: #8896b0 !important;
+    color: #c7d5f5 !important;
 }
 
-/* ── Hide Streamlit chrome ── */
 #MainMenu, footer, header { visibility: hidden; }
-.block-container { padding-top: 2rem !important; max-width: 900px; }
+.block-container {
+    padding: 1.8rem 2rem 2.4rem !important;
+    max-width: 1480px;
+}
 
-/* ── Logo / Header ── */
-.synapse-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid #1a2035;
+a { color: #7db3ff; }
+
+.hero-shell {
+    display: grid;
+    gap: 1.2rem;
+    padding: 1.8rem;
+    margin-bottom: 1.5rem;
+    background: rgba(10, 18, 36, 0.82);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 30px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 40px 120px rgba(2, 12, 40, 0.45);
 }
-.synapse-logo {
-    width: 44px; height: 44px;
-    background: linear-gradient(135deg, #00d4ff, #0066ff);
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem;
-    box-shadow: 0 0 20px #0066ff44;
+.hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 1.8px;
+    color: #7c93d2;
 }
-.synapse-title {
+.hero-title {
     font-family: 'Syne', sans-serif;
-    font-size: 1.5rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, #00d4ff, #6366f1);
+    font-size: clamp(2.4rem, 4vw, 4.2rem);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    margin: 0;
+    background: linear-gradient(90deg, #7db3ff, #b57cff, #00d4ff);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    letter-spacing: -0.5px;
-    margin: 0;
 }
-.synapse-sub {
-    font-size: 0.75rem;
-    color: #3a4a6b;
+.hero-copy {
+    font-size: 1rem;
+    max-width: 820px;
+    line-height: 1.8;
+    color: #c7d5f5;
+}
+.hero-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-top: 1.4rem;
+}
+.hero-pill {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 999px;
+    padding: 0.85rem 1rem;
     font-family: 'DM Mono', monospace;
-    letter-spacing: 1px;
-    text-transform: uppercase;
+    font-size: 0.8rem;
+    color: #d5e1ff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+.hero-pill span { color: #7db3ff; }
+
+.glass-card {
+    background: rgba(8, 14, 28, 0.86);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 28px;
+    padding: 1.4rem;
+    backdrop-filter: blur(18px);
+    box-shadow: 0 32px 90px rgba(0, 0, 0, 0.22);
+}
+.glass-card.smaller { padding: 1rem; }
+.card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.05rem;
+    margin: 0 0 1rem;
+    color: #f5f7ff;
+}
+.card-subtitle {
+    color: #9badcf;
+    font-size: 0.85rem;
+    line-height: 1.7;
     margin: 0;
 }
 
-/* ── Agent Pipeline Visual ── */
-.pipeline {
+.workflow-board {
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin: 1.2rem 0;
+    gap: 0.8rem;
     flex-wrap: wrap;
+    padding: 0.8rem;
+    border-radius: 22px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
 }
-.agent-node {
+.workflow-step {
+    min-width: 120px;
+    padding: 0.9rem 1rem;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #99a8d5;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    transition: transform 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+.workflow-step.active {
+    color: #e7f7ff;
+    border-color: rgba(109, 154, 255, 0.75);
+    box-shadow: 0 0 30px rgba(77, 170, 255, 0.22);
+    transform: translateY(-2px);
+    background: rgba(28, 52, 97, 0.55);
+}
+.workflow-step .step-label {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+.workflow-step .step-desc {
+    color: #9badcf;
+    font-size: 0.76rem;
+    line-height: 1.5;
+}
+.workflow-arrow {
+    font-size: 1.4rem;
+    color: rgba(255,255,255,0.3);
+}
+
+.assistant-panel {
+    display: grid;
+    gap: 1rem;
+}
+.assistant-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(76, 153, 255, 0.2), rgba(120, 73, 255, 0.18));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid;
+    place-items: center;
+    color: white;
+    font-size: 2rem;
+    box-shadow: 0 18px 60px rgba(24, 93, 255, 0.18);
+}
+.assistant-status {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.7rem;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    border: 1px solid;
-    transition: all 0.3s ease;
+    gap: 0.8rem;
+    padding: 1rem 1.1rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 22px;
 }
-.agent-clarity   { background: #0d1829; border-color: #1e4d7b; color: #4d9fff; }
-.agent-research  { background: #0d1a14; border-color: #1e4d2e; color: #4dff8f; }
-.agent-validator { background: #1a1208; border-color: #4d3800; color: #ffb84d; }
-.agent-synthesis { background: #1a0d1a; border-color: #4d1a7b; color: #b84dff; }
-.agent-active    { box-shadow: 0 0 12px currentColor; transform: scale(1.05); }
-.arrow { color: #2a3a5a; font-size: 0.9rem; }
+.assistant-status strong {
+    color: #e7f7ff;
+    font-family: 'Syne', sans-serif;
+}
+.assistant-state {
+    color: #98b7e3;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+.metric-grid {
+    display: grid;
+    gap: 0.9rem;
+}
+.metric-card {
+    padding: 1rem;
+    border-radius: 22px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.metric-value {
+    display: block;
+    font-size: 1.9rem;
+    font-family: 'Syne', sans-serif;
+    margin-top: 0.35rem;
+    color: #eef4ff;
+}
+.metric-label {
+    color: #94a9d0;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.progress-pill {
+    height: 10px;
+    width: 100%;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+    margin-top: 0.9rem;
+}
+.progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #5ac4ff, #9f7fff);
+    transition: width 0.8s ease;
+}
 
-/* ── Chat Messages ── */
-.msg-user {
-    display: flex;
-    justify-content: flex-end;
-    margin: 1rem 0 0.5rem;
+.activity-feed {
+    display: grid;
+    gap: 0.8rem;
 }
-.msg-user-bubble {
-    background: linear-gradient(135deg, #0052cc, #0066ff);
-    color: #fff;
-    padding: 10px 16px;
-    border-radius: 18px 18px 4px 18px;
-    max-width: 75%;
-    font-size: 0.9rem;
-    line-height: 1.5;
-    box-shadow: 0 4px 15px #0052cc44;
-}
-.msg-assistant {
+.activity-event {
     display: flex;
-    justify-content: flex-start;
-    margin: 0.5rem 0 1rem;
-    gap: 10px;
+    gap: 0.8rem;
     align-items: flex-start;
+    padding: 1rem;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
 }
-.msg-avatar {
-    width: 30px; height: 30px;
-    background: linear-gradient(135deg, #00d4ff22, #6366f122);
-    border: 1px solid #6366f144;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.9rem;
-    flex-shrink: 0;
-    margin-top: 4px;
+.event-dot {
+    min-width: 10px;
+    min-height: 10px;
+    border-radius: 50%;
+    margin-top: 0.4rem;
 }
-.msg-assistant-bubble {
-    background: #0e1520;
-    border: 1px solid #1a2540;
-    color: #c8d8f0;
-    padding: 14px 18px;
-    border-radius: 4px 18px 18px 18px;
-    max-width: 80%;
+.event-title {
+    color: #e6ecff;
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+.event-time {
+    color: #8fa7d8;
+    font-size: 0.76rem;
+    margin-top: 0.35rem;
+}
+.event-info .event-dot { background: #5ab7ff; }
+.event-success .event-dot { background: #55d289; }
+.event-warning .event-dot { background: #ffad52; }
+.event-error .event-dot { background: #ff5b87; }
+
+.insight-grid {
+    display: grid;
+    gap: 1rem;
+}
+.insight-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 24px;
+    padding: 1.1rem;
+    min-height: 136px;
+}
+.insight-card h4 {
+    margin: 0 0 0.75rem;
+    font-family: 'Syne', sans-serif;
+    color: #eef4ff;
+    font-size: 1rem;
+}
+.insight-card p {
+    margin: 0;
+    color: #b0c3e6;
     font-size: 0.88rem;
     line-height: 1.7;
 }
-.msg-assistant-bubble h2, .msg-assistant-bubble h3 {
-    color: #7db3ff;
-    font-family: 'Syne', sans-serif;
+
+.chat-window {
+    display: grid;
+    gap: 1rem;
+}
+.chat-window .glass-card {
+    padding: 1.4rem;
+}
+.chat-piece {
+    display: flex;
+    gap: 0.9rem;
+    align-items: flex-start;
+}
+.chat-user { justify-content: flex-end; }
+.chat-user .bubble {
+    background: linear-gradient(135deg, rgba(0,82,204,0.95), rgba(0,102,255,0.95));
+    color: white;
+    border-radius: 22px 22px 4px 22px;
+}
+.chat-assistant .bubble {
+    background: rgba(18, 28, 50, 0.95);
+    color: #d0d9f3;
+    border-radius: 4px 22px 22px 22px;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.bubble {
+    padding: 16px 20px;
+    max-width: 82%;
+    line-height: 1.75;
     font-size: 0.95rem;
-    margin: 1rem 0 0.4rem;
-    border-bottom: 1px solid #1a2540;
-    padding-bottom: 4px;
+    white-space: pre-wrap;
 }
-.msg-assistant-bubble strong { color: #a0c4ff; }
-.msg-assistant-bubble ul { padding-left: 1.2rem; }
-.msg-assistant-bubble li { margin: 0.3rem 0; }
+.bubble h2, .bubble h3 { color: #8dbcff; margin: 1rem 0 0.6rem; }
 
-/* ── Clarification box ── */
-.clarification-box {
-    background: #0d1520;
-    border: 1px solid #1e3a5f;
-    border-left: 3px solid #00d4ff;
-    border-radius: 8px;
-    padding: 14px 18px;
-    margin: 0.5rem 0 1rem;
-    color: #7db3ff;
-    font-size: 0.88rem;
-    line-height: 1.6;
+.input-panel {
+    display: grid;
+    gap: 1.1rem;
+    padding: 1.4rem;
+    margin-top: 1.5rem;
+    background: rgba(13, 20, 39, 0.9);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 28px;
 }
-.clarification-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    color: #00d4ff;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-}
-
-/* ── Status badges ── */
-.badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    margin-left: 8px;
-}
-.badge-green  { background: #0d2a1a; color: #4dff8f; border: 1px solid #1e5a2e; }
-.badge-blue   { background: #0d1a2a; color: #4d9fff; border: 1px solid #1e3a5f; }
-.badge-orange { background: #2a1a08; color: #ffb84d; border: 1px solid #5a3a1e; }
-.badge-purple { background: #1a0d2a; color: #b84dff; border: 1px solid #3a1a5a; }
-
-/* ── Confidence meter ── */
-.confidence-bar-wrap {
-    margin: 6px 0;
+.input-actions {
     display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.confidence-bar-bg {
-    flex: 1;
-    height: 4px;
-    background: #1a2035;
-    border-radius: 2px;
-    overflow: hidden;
-}
-.confidence-bar-fill {
-    height: 100%;
-    border-radius: 2px;
-    background: linear-gradient(90deg, #0052cc, #00d4ff);
-    transition: width 0.8s ease;
-}
-.confidence-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    color: #3a4a6b;
-    min-width: 60px;
-}
-
-/* ── Input area ── */
-.stTextInput > div > div > input {
-    background: #0e1520 !important;
-    border: 1px solid #1a2540 !important;
-    border-radius: 10px !important;
-    color: #c8d8f0 !important;
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 0.9rem !important;
-    padding: 12px 16px !important;
-}
-.stTextInput > div > div > input:focus {
-    border-color: #0066ff !important;
-    box-shadow: 0 0 0 2px #0066ff22 !important;
-}
-.stTextInput > div > div > input::placeholder { color: #2a3a5a !important; }
-
-/* ── Buttons ── */
-.stButton > button {
-    background: linear-gradient(135deg, #0052cc, #0066ff) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 8px !important;
-    font-family: 'DM Sans', sans-serif !important;
-    font-weight: 500 !important;
-    padding: 10px 20px !important;
-    transition: all 0.2s !important;
-}
-.stButton > button:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 15px #0066ff44 !important;
-}
-
-/* ── Divider ── */
-hr { border-color: #1a2035 !important; }
-
-/* ── Sidebar widgets ── */
-.stTextInput label, .stSelectbox label {
-    color: #3a4a6b !important;
-    font-family: 'DM Mono', monospace !important;
-    font-size: 0.7rem !important;
-    letter-spacing: 1px !important;
-    text-transform: uppercase !important;
-}
-
-/* ── Scrollbar ── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: #080b12; }
-::-webkit-scrollbar-thumb { background: #1a2540; border-radius: 2px; }
-
-/* ── Thinking animation ── */
-.thinking {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    padding: 4px 0;
-}
-.thinking-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: #0066ff;
-    animation: pulse 1.2s infinite;
-}
-.thinking-dot:nth-child(2) { animation-delay: 0.2s; background: #00a3ff; }
-.thinking-dot:nth-child(3) { animation-delay: 0.4s; background: #00d4ff; }
-@keyframes pulse {
-    0%, 100% { opacity: 0.3; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1.2); }
-}
-
-.meta-row {
-    display: flex;
-    gap: 8px;
-    margin-top: 8px;
+    gap: 0.9rem;
     flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+}
+.status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 0.9rem;
+    border-radius: 999px;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.7rem;
+    color: #d8e7ff;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+.hero-shell { animation: float 8s ease-in-out infinite; }
+
+@media (max-width: 1024px) {
+    .hero-stats { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+    .workflow-board { flex-direction: column; }
 }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── Session State ─────────────────────────────────────────────────────────────
-if "messages" not in st.session_state:
-    st.session_state.messages = []          # Chat display history
-if "lc_history" not in st.session_state:
-    st.session_state.lc_history = []        # LangChain message objects
-if "awaiting_clarification" not in st.session_state:
-    st.session_state.awaiting_clarification = False
-if "clarification_question" not in st.session_state:
-    st.session_state.clarification_question = ""
-if "active_agent" not in st.session_state:
-    st.session_state.active_agent = None
-if "thread_id" not in st.session_state:
-    st.session_state.thread_id = "session_001"
+# ── Helper Functions ──────────────────────────────────────────────────────────
+import re
+from datetime import datetime
 
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("### ⬡ Configuration")
-    st.markdown("---")
+def init_session_state():
+    defaults = {
+        'messages': [],
+        'lc_history': [],
+        'awaiting_clarification': False,
+        'clarification_question': '',
+        'active_agent': 'clarity',
+        'thread_id': 'session_001',
+        'activity_feed': [],
+        'last_result': {},
+        'query_input': '',
+    }
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
 
-    google_key = st.text_input(
-        "GOOGLE API KEY",
-        type="password",
-        placeholder="AIza...",
-        value=os.environ.get("GOOGLE_API_KEY", ""),
-    )
-    tavily_key = st.text_input(
-        "TAVILY API KEY",
-        type="password",
-        placeholder="tvly-...",
-        value=os.environ.get("TAVILY_API_KEY", ""),
-    )
 
-    if google_key:
-        os.environ["GOOGLE_API_KEY"] = google_key
-    if tavily_key:
-        os.environ["TAVILY_API_KEY"] = tavily_key
+def format_timestamp():
+    return datetime.now().strftime('%I:%M %p')
 
-    st.markdown("---")
-    st.markdown("### ⬡ Agent Pipeline")
 
-    agents_info = [
-        ("clarity",   "⬡", "Clarity",   "Validates query specificity"),
-        ("research",  "⬡", "Research",  "Fetches company data via Tavily"),
-        ("validator", "⬡", "Validator", "Checks research quality"),
-        ("synthesis", "⬡", "Synthesis", "Generates final response"),
-    ]
+def push_activity(message: str, level: str = 'info'):
+    st.session_state.activity_feed.insert(0, {
+        'text': message,
+        'status': level,
+        'time': format_timestamp(),
+    })
+    st.session_state.activity_feed = st.session_state.activity_feed[:12]
 
-    for key, icon, name, desc in agents_info:
-        is_active = st.session_state.active_agent == key
-        cls = f"agent-{key}" + (" agent-active" if is_active else "")
-        st.markdown(
-            f'<div class="agent-node {cls}">{icon} {name}</div>'
-            f'<div style="font-size:0.7rem;color:#2a3a5a;margin:2px 0 8px 12px">{desc}</div>',
-            unsafe_allow_html=True
+
+def agent_label(key: str) -> str:
+    return {
+        'clarity': 'Clarity',
+        'research': 'Research',
+        'validator': 'Validator',
+        'synthesis': 'Synthesis',
+    }.get(key, 'Samantha')
+
+
+def build_insights(response_text: str):
+    if not response_text:
+        return []
+    sections = re.split(r'\n##+\s*', response_text)
+    titles = re.findall(r'\n##+\s*(.+)', response_text)
+    cards = []
+    for idx, title in enumerate(titles[:5]):
+        body = sections[idx + 1].strip() if idx + 1 < len(sections) else ''
+        clean = body.replace('\n', ' ').strip()
+        if len(clean) > 150:
+            clean = clean[:150].rstrip() + '…'
+        cards.append({'title': title, 'body': clean or 'Insight coming from Samantha…'})
+    if not cards:
+        snippet = response_text.replace('\n', ' ').strip()
+        if len(snippet) > 180:
+            snippet = snippet[:180].rstrip() + '…'
+        return [{'title': 'Research summary', 'body': snippet}]
+    return cards
+
+
+def node_html(label: str, key: str, active_key: str, desc: str):
+    active = 'active' if active_key == key else ''
+    return f'<div class="workflow-step {active}"><span class="step-label">{label}</span><span class="step-desc">{desc}</span></div>'
+
+
+def render_sidebar():
+    with st.sidebar:
+        st.markdown('''
+            <div style="padding: 0 0.4rem;">
+                <h3 style="margin-bottom:0.45rem; font-family: 'Syne', sans-serif; font-size:1.25rem; color:#eef4ff;">
+                    Samantha Control
+                </h3>
+                <p style="color:#9db1d8; font-size:0.95rem; margin:0 0 1rem; line-height:1.7;">
+                    Manage API keys, workflow examples, and conversation state for a polished demo experience.
+                </p>
+            </div>
+        ''', unsafe_allow_html=True)
+
+        groq_key = st.text_input(
+            'Groq API Key',
+            type='password',
+            placeholder='gsk_...',
+            value=os.environ.get('GROQ_API_KEY', ''),
+            help='Google GeminI / Groq key used by the assistant.',
+        )
+        tavily_key = st.text_input(
+            'Tavily API Key',
+            type='password',
+            placeholder='tvly-...',
+            value=os.environ.get('TAVILY_API_KEY', ''),
+            help='Search API key for live company intelligence.',
         )
 
-    st.markdown("---")
-    st.markdown("### ⬡ Try These")
-    examples = [
-        "What's the latest news about OpenAI?",
-        "Tell me about Tesla's financials in 2024",
-        "Who is the CEO of Microsoft and what have they done recently?",
-        "What are Apple's latest product launches?",
-    ]
-    for ex in examples:
-        if st.button(ex, key=f"ex_{ex[:20]}", use_container_width=True):
-            st.session_state.pending_query = ex
+        if groq_key:
+            os.environ['GROQ_API_KEY'] = groq_key
+        if tavily_key:
+            os.environ['TAVILY_API_KEY'] = tavily_key
 
-    st.markdown("---")
-    if st.button("🗑 Clear Conversation", use_container_width=True):
-        st.session_state.messages = []
-        st.session_state.lc_history = []
-        st.session_state.awaiting_clarification = False
-        st.session_state.clarification_question = ""
-        st.session_state.active_agent = None
-        st.rerun()
+        st.markdown('---')
+        st.markdown('''
+            <div style="padding: 0 0.4rem;">
+                <p style="font-family:'DM Mono',monospace;font-size:0.75rem;color:#7db3ff;text-transform:uppercase;letter-spacing:1.6px;margin:0 0 0.8rem;">
+                    Quick launch
+                </p>
+            </div>
+        ''', unsafe_allow_html=True)
+
+        examples = [
+            "What's the latest news about OpenAI?",
+            "Tell me about Tesla's financials in 2024",
+            "Who is the CEO of Microsoft and what have they done recently?",
+            "What are Apple's latest product launches?",
+        ]
+        for idx, ex in enumerate(examples):
+            if st.button(ex, key=f'ex_{idx}', use_container_width=True):
+                st.session_state.query_input = ex
+                st.session_state.pending_query = ex
+
+        st.markdown('---')
+        if st.button('Clear conversation', use_container_width=True):
+            st.session_state.messages = []
+            st.session_state.lc_history = []
+            st.session_state.awaiting_clarification = False
+            st.session_state.clarification_question = ''
+            st.session_state.active_agent = 'clarity'
+            st.session_state.last_result = {}
+            st.session_state.activity_feed = []
+            st.session_state.query_input = ''
+            push_activity('Samantha is ready for a fresh research session.', 'info')
+            st.experimental_rerun()
 
 
-# ── Main Area ─────────────────────────────────────────────────────────────────
-st.markdown("""
-<div class="synapse-header">
-    <div class="synapse-logo">⬡</div>
-    <div>
-        <div class="synapse-title">SynapseAI Research</div>
-        <div class="synapse-sub">Multi-Agent Business Intelligence</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+def render_hero():
+    active_agent = agent_label(st.session_state.active_agent)
+    status_text = 'Awaiting your next signal.'
+    if st.session_state.awaiting_clarification:
+        status_text = 'Samantha needs a quick clarification before she proceeds.'
+    elif st.session_state.last_result:
+        status_text = f'Samantha delivered the latest findings through the {active_agent} Agent.'
 
-# Pipeline visual
-st.markdown("""
-<div class="pipeline">
-    <div class="agent-node agent-clarity">⬡ Clarity</div>
-    <span class="arrow">→</span>
-    <div class="agent-node agent-research">⬡ Research</div>
-    <span class="arrow">→</span>
-    <div class="agent-node agent-validator">⬡ Validator</div>
-    <span class="arrow">→</span>
-    <div class="agent-node agent-synthesis">⬡ Synthesis</div>
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown("---")
-
-# ── Check API Keys ────────────────────────────────────────────────────────────
-if not os.environ.get("GOOGLE_API_KEY") or not os.environ.get("TAVILY_API_KEY"):
-    st.markdown("""
-    <div style="background:#0d1520;border:1px solid #1e3a5f;border-left:3px solid #00d4ff;
-                border-radius:8px;padding:20px;margin:1rem 0;">
-        <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:#00d4ff;
-                    letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">
-            Setup Required
+    st.markdown(f"""
+    <div class="hero-shell">
+        <div>
+            <div class="hero-eyebrow">Meet Samantha</div>
+            <h1 class="hero-title">AI research orchestration with intelligence and confidence.</h1>
+            <p class="hero-copy">Samantha manages a four-agent workflow that moves from clarification to research, validation, and synthesis — all while keeping your conversation context intact.</p>
+            <div class="hero-stats">
+                <div class="hero-pill">Live multi-turn research</div>
+                <div class="hero-pill">Human-in-the-loop clarity</div>
+                <div class="hero-pill">Confidence-backed intelligence</div>
+            </div>
         </div>
-        <div style="color:#8896b0;font-size:0.88rem;line-height:1.6">
-            Enter your <strong style="color:#c8d8f0">Google API Key</strong> and 
-            <strong style="color:#c8d8f0">Tavily API Key</strong> in the sidebar to begin.<br><br>
-            • Google API Key: <a href="https://aistudio.google.com" style="color:#4d9fff">aistudio.google.com</a> (free)<br>
-            • Tavily API Key: <a href="https://tavily.com" style="color:#4d9fff">tavily.com</a> (free tier available)
+        <div style="display:grid; gap:0.95rem; align-content:start;">
+            <div class="glass-card smaller">
+                <div style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.9rem;">
+                    <div class="assistant-avatar">S</div>
+                    <div>
+                        <div style="font-size:0.95rem; color:#eef4ff; font-weight:700;">Samantha</div>
+                        <div style="font-size:0.82rem; color:#9ab1d7;">Your AI research analyst</div>
+                    </div>
+                </div>
+                <div style="display:grid; gap:0.65rem;">
+                    <div class="status-chip">{status_text}</div>
+                    <div class="status-chip">Active node: {active_agent}</div>
+                </div>
+            </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-# ── Display Chat History ──────────────────────────────────────────────────────
-for msg in st.session_state.messages:
-    if msg["role"] == "user":
-        st.markdown(f"""
-        <div class="msg-user">
-            <div class="msg-user-bubble">{msg["content"]}</div>
-        </div>
-        """, unsafe_allow_html=True)
 
-    elif msg["role"] == "assistant":
-        content_html = msg["content"].replace("## ", "<h2>").replace("### ", "<h3>")
-        st.markdown(f"""
-        <div class="msg-assistant">
-            <div class="msg-avatar">⬡</div>
-            <div>
-                <div class="msg-assistant-bubble">{content_html}</div>
-                <div class="meta-row">
-                    <span class="badge badge-green">✓ Research Complete</span>
-                    <span class="badge badge-blue">Confidence: {msg.get('confidence', '—')}/10</span>
-                    <span class="badge badge-purple">Attempts: {msg.get('attempts', '—')}</span>
+def render_workflow():
+    active = st.session_state.active_agent or 'clarity'
+    st.markdown('''
+        <div class="glass-card">
+            <div class="card-title">Workflow live view</div>
+            <div class="card-subtitle">Samantha routes your question through the multi-agent process with transparency and energy.</div>
+            <div class="workflow-board" style="margin-top:1.4rem;">
+    ''' +
+        node_html('Clarity', 'clarity', active, 'Validates query intent') +
+        '<div class="workflow-arrow">→</div>' +
+        node_html('Research', 'research', active, 'Fetches real data') +
+        '<div class="workflow-arrow">→</div>' +
+        node_html('Validator', 'validator', active, 'Checks quality') +
+        '<div class="workflow-arrow">→</div>' +
+        node_html('Synthesis', 'synthesis', active, 'Crafts the final report') +
+        '</div></div>',
+        unsafe_allow_html=True)
+
+
+def render_samantha_panel():
+    last = st.session_state.last_result or {}
+    confidence = last.get('confidence_score', 0)
+    attempts = last.get('research_attempts', 0)
+    validation = last.get('validation_result', 'pending')
+    validation_label = validation.capitalize() if validation else 'Pending'
+    st.markdown(f'''
+        <div class="glass-card assistant-panel">
+            <div class="card-title">Samantha overview</div>
+            <div class="assistant-status">
+                <div style="display:grid; gap:0.24rem;">
+                    <strong>{agent_label(st.session_state.active_agent)} Agent</strong>
+                    <span class="assistant-state">{ 'Clarifying request' if st.session_state.awaiting_clarification else 'Processing research and confidence signals' }</span>
                 </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    elif msg["role"] == "clarification":
-        st.markdown(f"""
-        <div class="msg-assistant" style="margin-bottom:0.5rem">
-            <div class="msg-avatar">⬡</div>
-            <div class="clarification-box">
-                <div class="clarification-label">⬡ Clarification Needed</div>
-                {msg["content"]}
+            <div class="metric-grid">
+                <div class="metric-card"><span class="metric-label">Confidence</span><span class="metric-value">{confidence}/10</span>
+                    <div class="progress-pill"><span class="progress-fill" style="width:{confidence * 10}%;"></span></div>
+                </div>
+                <div class="metric-card"><span class="metric-label">Validator status</span><span class="metric-value">{validation_label}</span></div>
+                <div class="metric-card"><span class="metric-label">Research attempts</span><span class="metric-value">{attempts}</span></div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+    ''', unsafe_allow_html=True)
 
 
-# ── Input Area ────────────────────────────────────────────────────────────────
-st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
-
-# Handle example button clicks
-pending = st.session_state.pop("pending_query", None)
-
-col1, col2 = st.columns([5, 1])
-
-with col1:
-    placeholder = (
-        "Your clarification here..." if st.session_state.awaiting_clarification
-        else "Ask about any company — news, financials, leadership, products..."
-    )
-    user_input = st.text_input(
-        "query",
-        placeholder=placeholder,
-        label_visibility="collapsed",
-        value=pending or "",
-        key="query_input",
-    )
-
-with col2:
-    send = st.button("Send →", use_container_width=True)
+def render_insight_cards():
+    cards = build_insights(st.session_state.last_result.get('final_response', ''))
+    if not cards:
+        st.markdown('''
+            <div class="glass-card">
+                <div class="card-title">Research insights</div>
+                <div class="card-subtitle">Submit a query to generate a polished summary of company news, leadership, competitors, and financial context.</div>
+            </div>
+        ''', unsafe_allow_html=True)
+        return
+    html = '<div class="glass-card"><div class="card-title">Research insights</div><div class="insight-grid">'
+    for card in cards[:4]:
+        html += f'<div class="insight-card"><h4>{card["title"]}</h4><p>{card["body"]}</p></div>'
+    html += '</div></div>'
+    st.markdown(html, unsafe_allow_html=True)
 
 
-# ── Process Query ─────────────────────────────────────────────────────────────
-query_to_process = None
-if send and user_input.strip():
-    query_to_process = user_input.strip()
-elif pending:
-    query_to_process = pending
+def render_activity_feed():
+    if not st.session_state.activity_feed:
+        st.markdown('''
+            <div class="glass-card">
+                <div class="card-title">Activity feed</div>
+                <div class="card-subtitle">Samantha logs every workflow event so your demo feels alive and intentional.</div>
+                <div class="activity-feed" style="margin-top:1rem;">
+                    <div class="activity-event event-info"><div class="event-dot"></div><div>
+                        <div class="event-title">Ready for your first research prompt.</div>
+                        <div class="event-time">Awaiting input</div>
+                    </div></div>
+                </div>
+            </div>
+        ''', unsafe_allow_html=True)
+    else:
+        html = '''
+            <div class="glass-card">
+                <div class="card-title">Activity feed</div>
+                <div class="card-subtitle">Samantha logs every workflow event so your demo feels alive and intentional.</div>
+                <div class="activity-feed" style="margin-top:1rem;">
+        '''
+        for event in st.session_state.activity_feed[:6]:
+            html += f'<div class="activity-event event-{event["status"]}"><div class="event-dot"></div><div><div class="event-title">{event["text"]}</div><div class="event-time">{event["time"]}</div></div></div>'
+        html += '</div></div>'
+        st.markdown(html, unsafe_allow_html=True)
 
-if query_to_process and os.environ.get("GOOGLE_API_KEY") and os.environ.get("TAVILY_API_KEY"):
 
-    # Add user message to display
+def render_chat_messages():
+    st.markdown('<div class="glass-card chat-window"><div class="card-title">Conversation</div>', unsafe_allow_html=True)
+    if not st.session_state.messages:
+        st.markdown('''
+            <div style="color:#9fb4dd; padding:1rem 0;">Ask Samantha a business question to begin the research workflow.</div>
+        ''', unsafe_allow_html=True)
+    for msg in st.session_state.messages:
+        if msg['role'] == 'user':
+            content = msg['content'].replace('\n', '<br>')
+            st.markdown(f'''
+                <div class="chat-piece chat-user"><div class="bubble">{content}</div></div>
+            ''', unsafe_allow_html=True)
+        elif msg['role'] == 'assistant':
+            content_html = msg['content'].replace('## ', '<h2>').replace('### ', '<h3>').replace('\n', '<br>')
+            st.markdown(f'''
+                <div class="chat-piece chat-assistant">
+                    <div class="bubble">{content_html}</div>
+                </div>
+            ''', unsafe_allow_html=True)
+            st.markdown(f'''
+                <div style="display:flex; gap:0.7rem; flex-wrap:wrap; margin-top:-0.4rem; margin-bottom:0.8rem;">
+                    <span class="badge badge-blue">Confidence: {msg.get('confidence','—')}/10</span>
+                    <span class="badge badge-purple">Attempts: {msg.get('attempts','—')}</span>
+                </div>
+            ''', unsafe_allow_html=True)
+        elif msg['role'] == 'clarification':
+            st.markdown(f'''
+                <div class="chat-piece chat-assistant">
+                    <div class="bubble clarification-box"><strong>Clarification needed:</strong><br>{msg['content']}</div>
+                </div>
+            ''', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def render_input_panel():
+    placeholder = 'Clarify the request...' if st.session_state.awaiting_clarification else 'Ask Samantha about a company, CEO, product, or market trend...'
+    if 'pending_query' in st.session_state:
+        st.session_state.query_input = st.session_state.pending_query
+        st.session_state.pop('pending_query', None)
+
+    user_input = st.text_input('Your research prompt', key='query_input', placeholder=placeholder, label_visibility='collapsed')
+    send = st.button('Send to Samantha →', use_container_width=True)
+
+    if send and user_input.strip():
+        return user_input.strip()
+    return None
+
+
+def render_api_warning():
+    st.markdown('''
+        <div class="glass-card" style="border-left:4px solid #4d9fff; margin-bottom:1.5rem;">
+            <div class="card-title">Setup required</div>
+            <div class="card-subtitle">Enter your Groq and Tavily API keys in the sidebar to unlock Samantha's full research capabilities.</div>
+        </div>
+    ''', unsafe_allow_html=True)
+
+
+# ── Initialize ───────────────────────────────────────────────────────────────
+init_session_state()
+if not st.session_state.activity_feed:
+    push_activity('Samantha is ready for a fresh research session.', 'info')
+
+render_sidebar()
+render_hero()
+
+if not os.environ.get('GROQ_API_KEY') or not os.environ.get('TAVILY_API_KEY'):
+    render_api_warning()
+
+left, right = st.columns([3, 1], gap='large')
+with left:
+    render_workflow()
+    render_insight_cards()
+    render_chat_messages()
+with right:
+    render_samantha_panel()
+    render_activity_feed()
+
+query_to_process = render_input_panel()
+
+if query_to_process and os.environ.get('GROQ_API_KEY') and os.environ.get('TAVILY_API_KEY'):
     st.session_state.messages.append({
-        "role": "user",
-        "content": query_to_process,
+        'role': 'user',
+        'content': query_to_process,
     })
-
-    # Add to LangChain history
     st.session_state.lc_history.append(HumanMessage(content=query_to_process))
+    if st.session_state.awaiting_clarification:
+        st.session_state.active_agent = 'clarity'
+        push_activity('Samantha is validating the clarification before continuing.', 'info')
+    else:
+        st.session_state.active_agent = 'research'
+        push_activity('Samantha received your query and began research.', 'info')
 
-    # Show thinking state
-    with st.spinner(""):
-        st.markdown("""
-        <div class="msg-assistant">
-            <div class="msg-avatar">⬡</div>
-            <div style="padding:10px 0">
-                <div class="thinking">
-                    <div class="thinking-dot"></div>
-                    <div class="thinking-dot"></div>
-                    <div class="thinking-dot"></div>
-                </div>
-                <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:#2a3a5a;margin-top:4px">
-                    agents processing...
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
+    with st.spinner('Samantha is analyzing the workflow...'):
+        st.markdown('''
+            <div class="thinking"><div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div></div>
+        ''', unsafe_allow_html=True)
         try:
             result = run_research(
                 query=query_to_process,
                 conversation_history=st.session_state.lc_history[:-1],
                 thread_id=st.session_state.thread_id,
             )
-
-            if result["awaiting_clarification"]:
-                # Need more info from user
+            st.session_state.last_result = result
+            if result['awaiting_clarification']:
                 st.session_state.awaiting_clarification = True
-                st.session_state.clarification_question = result["clarification_question"]
+                st.session_state.clarification_question = result['clarification_question']
                 st.session_state.messages.append({
-                    "role": "clarification",
-                    "content": result["clarification_question"],
+                    'role': 'clarification',
+                    'content': result['clarification_question'],
                 })
-                # Remove the user message from LangChain history temporarily
+                st.session_state.active_agent = 'clarity'
+                push_activity('Samantha detected ambiguity and requested clarification.', 'warning')
                 st.session_state.lc_history.pop()
-
             else:
-                # Got a response
                 st.session_state.awaiting_clarification = False
-                response_text = result["final_response"]
-
+                st.session_state.active_agent = 'synthesis'
                 st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": response_text,
-                    "confidence": result.get("confidence_score", 0),
-                    "attempts": result.get("research_attempts", 1),
+                    'role': 'assistant',
+                    'content': result['final_response'],
+                    'confidence': result.get('confidence_score', 0),
+                    'attempts': result.get('research_attempts', 0),
                 })
-
-                # Add AI response to history
-                st.session_state.lc_history.append(AIMessage(content=response_text))
-
+                st.session_state.lc_history.append(AIMessage(content=result['final_response']))
+                push_activity('Samantha synthesized the final intelligence report.', 'success')
+                validation_status = result.get('validation_result', 'pending')
+                if validation_status == 'insufficient':
+                    push_activity('Validator suggested deeper research before finalizing.', 'warning')
+                else:
+                    push_activity('Research confidence is strong and validation passed.', 'success')
         except Exception as e:
             st.session_state.messages.append({
-                "role": "assistant",
-                "content": f"An error occurred: {str(e)}\n\nPlease check your API keys and try again.",
-                "confidence": 0,
-                "attempts": 0,
+                'role': 'assistant',
+                'content': f'An error occurred: {str(e)}\n\nPlease check your API keys and try again.',
+                'confidence': 0,
+                'attempts': 0,
             })
-
-    st.rerun()
+            push_activity('Samantha encountered an error while processing.', 'error')

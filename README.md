@@ -1,7 +1,7 @@
-# ⬡ SynapseAI — Multi-Agent Business Research Assistant
+# Multi-Agent Business Research Assistant
 
 A production-grade multi-agent research system built with **LangGraph**, **Gemini 1.5 Flash**, and **Tavily Search**. Four specialized agents collaborate to deliver structured, confidence-scored business intelligence with full conversation memory.
-
+![alt text](image.png)
 ---
 
 ## Architecture

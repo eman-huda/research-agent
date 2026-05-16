@@ -11,7 +11,7 @@ import os
 from typing import TypedDict, Annotated, List, Optional
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 import operator
@@ -19,30 +19,23 @@ import operator
 
 # ── State Schema ─────────────────────────────────────────────────────────────
 class ResearchState(TypedDict):
-    # Conversation history (persisted across turns)
     messages: Annotated[List, operator.add]
-    # Current user query
     query: str
-    # Clarity agent output
-    clarity_status: str          # "clear" or "needs_clarification"
-    clarification_question: str  # What to ask the user
-    # Research agent output
+    clarity_status: str
+    clarification_question: str
     research_findings: str
-    confidence_score: int        # 0-10
+    confidence_score: int
     research_attempts: int
-    # Validator output
-    validation_result: str       # "sufficient" or "insufficient"
-    # Final output
+    validation_result: str
     final_response: str
-    # Interrupt flag
     awaiting_clarification: bool
 
 
 # ── LLM & Tool Setup ─────────────────────────────────────────────────────────
 def get_llm():
-    return ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash",
-        google_api_key=os.environ.get("GOOGLE_API_KEY"),
+    return ChatGroq(
+        groq_api_key=os.environ.get("GROQ_API_KEY"),
+        model_name="llama-3.3-70b-versatile",
         temperature=0.3,
     )
 
@@ -55,22 +48,17 @@ def get_search_tool():
 
 # ── Agent 1: Clarity Agent ───────────────────────────────────────────────────
 def clarity_agent(state: ResearchState) -> ResearchState:
-    """
-    Evaluates whether the query is specific enough to research.
-    Checks for: company name, clear intent, not too vague.
-    """
     llm = get_llm()
 
-    # Build context from conversation history
     history_text = ""
     if state.get("messages"):
-        recent = state["messages"][-6:]  # Last 3 turns
+        recent = state["messages"][-6:]
         history_text = "\n".join([
             f"{'User' if isinstance(m, HumanMessage) else 'Assistant'}: {m.content}"
             for m in recent
         ])
 
-    prompt = f"""You are a Clarity Agent. Your job is to evaluate if a user's query is specific enough to research a company.
+    prompt = f"""You are a Clarity Agent. Evaluate if the user query is specific enough to research a company.
 
 Conversation History:
 {history_text if history_text else "No prior conversation."}
@@ -78,16 +66,16 @@ Conversation History:
 Current Query: "{state['query']}"
 
 Rules:
-- If the query mentions a specific company name AND has a clear intent (news, financials, CEO, products, etc.) → CLEAR
-- If query is vague (e.g., "tell me about a tech company", "what about them?") → NEEDS_CLARIFICATION
-- If query is a follow-up referencing prior conversation context → CLEAR (use history to understand)
-- Common company nicknames are fine (e.g., "Apple", "Google", "Tesla")
+- Specific company name + clear intent (news, financials, CEO, products) → CLEAR
+- Vague query with no company name → NEEDS_CLARIFICATION
+- Follow-up referencing prior conversation → CLEAR
+- Common nicknames are fine (Apple, Google, Tesla)
 
-Respond in EXACTLY this format (no extra text):
+Respond in EXACTLY this format, nothing else:
 STATUS: clear
 or
 STATUS: needs_clarification
-QUESTION: [Your specific clarification question here]"""
+QUESTION: [specific clarification question]"""
 
     response = llm.invoke([HumanMessage(content=prompt)])
     content = response.content.strip()
@@ -100,11 +88,9 @@ QUESTION: [Your specific clarification question here]"""
             "clarification_question": "",
         }
     else:
-        # Extract clarification question
         question = "Could you please specify which company you're asking about and what information you need?"
         if "QUESTION:" in content:
             question = content.split("QUESTION:")[-1].strip()
-
         return {
             **state,
             "clarity_status": "needs_clarification",
@@ -115,16 +101,11 @@ QUESTION: [Your specific clarification question here]"""
 
 # ── Agent 2: Research Agent ──────────────────────────────────────────────────
 def research_agent(state: ResearchState) -> ResearchState:
-    """
-    Searches for real company data using Tavily.
-    Assigns a confidence score 0-10 based on data quality.
-    """
     llm = get_llm()
     search = get_search_tool()
 
     query = state["query"]
 
-    # Run Tavily search
     try:
         search_results = search.invoke({"query": f"{query} company information 2024 2025"})
         raw_data = "\n\n".join([
@@ -134,36 +115,33 @@ def research_agent(state: ResearchState) -> ResearchState:
     except Exception as e:
         raw_data = f"Search error: {str(e)}"
 
-    # Let LLM process and score the results
-    prompt = f"""You are a Research Agent. You have retrieved raw search data about a company. 
-Analyze this data and produce structured research findings.
+    prompt = f"""You are a Research Agent. Process raw search data and produce structured findings.
 
 User Query: "{query}"
 
 Raw Search Data:
 {raw_data[:4000]}
 
-Your task:
+Tasks:
 1. Extract key information relevant to the query
-2. Organize findings clearly
-3. Assign a confidence score (0-10) based on data quality and relevance:
+2. Organize findings clearly with sections
+3. Assign a confidence score (0-10):
    - 8-10: Rich, recent, highly relevant data
-   - 6-7: Good data with some gaps
-   - 4-5: Partial data, some relevant info
-   - 0-3: Very limited or irrelevant data
+   - 6-7: Good data with minor gaps
+   - 4-5: Partial data
+   - 0-3: Very limited data
 
-Respond in this EXACT format:
+Respond in EXACTLY this format:
 FINDINGS:
-[Your structured research findings here - be detailed and informative]
+[structured findings here]
 
 CONFIDENCE: [single number 0-10]"""
 
     response = llm.invoke([HumanMessage(content=prompt)])
     content = response.content.strip()
 
-    # Parse findings and confidence
     findings = content
-    confidence = 5  # default
+    confidence = 5
 
     if "FINDINGS:" in content and "CONFIDENCE:" in content:
         parts = content.split("CONFIDENCE:")
@@ -186,31 +164,27 @@ CONFIDENCE: [single number 0-10]"""
 
 # ── Agent 3: Validator Agent ─────────────────────────────────────────────────
 def validator_agent(state: ResearchState) -> ResearchState:
-    """
-    Validates research quality and completeness.
-    Decides if data is sufficient to generate a good response.
-    """
     llm = get_llm()
 
-    prompt = f"""You are a Validator Agent. Assess whether the research findings are sufficient to answer the user's query.
+    prompt = f"""You are a Validator Agent. Assess if research findings are sufficient to answer the query.
 
 User Query: "{state['query']}"
 Confidence Score: {state['confidence_score']}/10
-Research Attempts: {state['research_attempts']}
+Research Attempts so far: {state['research_attempts']}
 
 Research Findings:
 {state['research_findings'][:2000]}
 
-Evaluation criteria:
-- Does the data directly address what the user asked?
-- Is there enough substance to generate a meaningful response?
-- Are there critical gaps that would make the answer misleading?
+Evaluation:
+- Does data directly address what the user asked?
+- Is there enough substance for a meaningful response?
+- Are there critical gaps that would mislead the user?
 
 Respond in EXACTLY this format:
 RESULT: sufficient
 or
 RESULT: insufficient
-REASON: [Brief reason]"""
+REASON: [brief reason]"""
 
     response = llm.invoke([HumanMessage(content=prompt)])
     content = response.content.strip()
@@ -227,13 +201,8 @@ REASON: [Brief reason]"""
 
 # ── Agent 4: Synthesis Agent ─────────────────────────────────────────────────
 def synthesis_agent(state: ResearchState) -> ResearchState:
-    """
-    Generates a polished, structured final response.
-    Maintains conversation context for follow-up questions.
-    """
     llm = get_llm()
 
-    # Build conversation context
     history_text = ""
     if state.get("messages"):
         recent = state["messages"][-8:]
@@ -242,10 +211,10 @@ def synthesis_agent(state: ResearchState) -> ResearchState:
             for m in recent
         ])
 
-    prompt = f"""You are a Synthesis Agent. Generate a comprehensive, well-structured response for the user.
+    prompt = f"""You are a Synthesis Agent. Generate a comprehensive, well-structured response.
 
 Conversation History:
-{history_text if history_text else "This is the first query."}
+{history_text if history_text else "First query."}
 
 Current Query: "{state['query']}"
 
@@ -255,14 +224,13 @@ Research Findings:
 Data Confidence: {state['confidence_score']}/10
 
 Instructions:
-- Structure your response clearly with sections
-- Use the conversation history to personalize follow-up responses
-- If confidence is low (<6), acknowledge data limitations honestly
-- Be informative, concise, and professional
-- For financial/news queries, include timestamps where available
-- End with 2-3 suggested follow-up questions the user might find useful
+- Structure with clear ## sections
+- Use conversation history for follow-up context
+- If confidence < 6, acknowledge data limitations
+- Be informative and professional
+- End with 2-3 suggested follow-up questions
 
-Format your response with clear sections using markdown-style headers (##)."""
+Use markdown ## headers for sections."""
 
     response = llm.invoke([HumanMessage(content=prompt)])
 
@@ -287,63 +255,44 @@ def route_after_research(state: ResearchState) -> str:
 def route_after_validator(state: ResearchState) -> str:
     attempts = state.get("research_attempts", 0)
     if state["validation_result"] == "insufficient" and attempts < 3:
-        return "research"  # Loop back
-    return "synthesis"    # Max attempts reached or sufficient
+        return "research"
+    return "synthesis"
 
 
-# ── Build the Graph ───────────────────────────────────────────────────────────
+# ── Build Graph ───────────────────────────────────────────────────────────────
 def build_graph():
     graph = StateGraph(ResearchState)
 
-    # Add nodes
     graph.add_node("clarity", clarity_agent)
     graph.add_node("research", research_agent)
     graph.add_node("validator", validator_agent)
     graph.add_node("synthesis", synthesis_agent)
 
-    # Entry point
     graph.set_entry_point("clarity")
 
-    # Conditional routing
     graph.add_conditional_edges(
         "clarity",
         route_after_clarity,
-        {
-            "interrupt": END,       # Stop and ask user
-            "research": "research",
-        }
+        {"interrupt": END, "research": "research"}
     )
-
     graph.add_conditional_edges(
         "research",
         route_after_research,
-        {
-            "synthesis": "synthesis",
-            "validator": "validator",
-        }
+        {"synthesis": "synthesis", "validator": "validator"}
     )
-
     graph.add_conditional_edges(
         "validator",
         route_after_validator,
-        {
-            "research": "research",   # Loop
-            "synthesis": "synthesis",
-        }
+        {"research": "research", "synthesis": "synthesis"}
     )
-
     graph.add_edge("synthesis", END)
 
-    # Compile with memory
     memory = MemorySaver()
     return graph.compile(checkpointer=memory)
 
 
 # ── Public Interface ──────────────────────────────────────────────────────────
 def run_research(query: str, conversation_history: list, thread_id: str = "default"):
-    """
-    Main entry point. Returns dict with response info.
-    """
     graph = build_graph()
 
     initial_state = {
