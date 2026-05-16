@@ -4,11 +4,14 @@ from flask_cors import CORS
 from agents import run_research
 from langchain_core.messages import HumanMessage, AIMessage
 
-GROQ_API_KEY = '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'
-TAVILY_API_KEY = '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'
+groq_api_key = os.environ.get('GROQ_API_KEY')
+tavily_api_key = os.environ.get('TAVILY_API_KEY')
 
-os.environ.setdefault('GROQ_API_KEY', GROQ_API_KEY)
-os.environ.setdefault('TAVILY_API_KEY', TAVILY_API_KEY)
+if not groq_api_key or not tavily_api_key:
+    raise RuntimeError(
+        'Missing GROQ_API_KEY or TAVILY_API_KEY environment variables. '
+        'Set them in a .env file or the deployment environment.'
+    )
 
 app = Flask(__name__)
 CORS(app)
