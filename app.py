@@ -424,7 +424,7 @@ def agent_label(key: str) -> str:
         'research': 'Research',
         'validator': 'Validator',
         'synthesis': 'Synthesis',
-    }.get(key, 'Samantha')
+    }.get(key, 'Agent')
 
 
 def build_insights(response_text: str):
@@ -438,7 +438,7 @@ def build_insights(response_text: str):
         clean = body.replace('\n', ' ').strip()
         if len(clean) > 150:
             clean = clean[:150].rstrip() + '…'
-        cards.append({'title': title, 'body': clean or 'Insight coming from Samantha…'})
+        cards.append({'title': title, 'body': clean or 'Insight coming from the agent…'})
     if not cards:
         snippet = response_text.replace('\n', ' ').strip()
         if len(snippet) > 180:
@@ -457,7 +457,7 @@ def render_sidebar():
         st.markdown('''
             <div style="padding: 0 0.4rem;">
                 <h3 style="margin-bottom:0.45rem; font-family: 'Syne', sans-serif; font-size:1.25rem; color:#eef4ff;">
-                    Samantha Control
+                    Agent Control
                 </h3>
                 <p style="color:#9db1d8; font-size:0.95rem; margin:0 0 1rem; line-height:1.7;">
                     Manage API keys, workflow examples, and conversation state for a polished demo experience.
@@ -515,7 +515,7 @@ def render_sidebar():
             st.session_state.last_result = {}
             st.session_state.activity_feed = []
             st.session_state.query_input = ''
-            push_activity('Samantha is ready for a fresh research session.', 'info')
+            push_activity('Agent is ready for a fresh research session.', 'info')
             st.experimental_rerun()
 
 
@@ -523,16 +523,16 @@ def render_hero():
     active_agent = agent_label(st.session_state.active_agent)
     status_text = 'Awaiting your next signal.'
     if st.session_state.awaiting_clarification:
-        status_text = 'Samantha needs a quick clarification before she proceeds.'
+        status_text = 'The agent needs a quick clarification before it proceeds.'
     elif st.session_state.last_result:
-        status_text = f'Samantha delivered the latest findings through the {active_agent} Agent.'
+        status_text = f'Agent delivered the latest findings through the {active_agent} Agent.'
 
     st.markdown(f"""
     <div class="hero-shell">
         <div>
-            <div class="hero-eyebrow">Meet Samantha</div>
-            <h1 class="hero-title">AI research orchestration with intelligence and confidence.</h1>
-            <p class="hero-copy">Samantha manages a four-agent workflow that moves from clarification to research, validation, and synthesis — all while keeping your conversation context intact.</p>
+            <div class="hero-eyebrow">Meet the Research Agent</div>
+            <h1 class="hero-title">Research orchestration with confidence.</h1>
+            <p class="hero-copy">The agent manages a four-agent workflow that moves from clarification to research, validation, and synthesis — all while keeping your conversation context intact.</p>
             <div class="hero-stats">
                 <div class="hero-pill">Live multi-turn research</div>
                 <div class="hero-pill">Human-in-the-loop clarity</div>
@@ -544,8 +544,8 @@ def render_hero():
                 <div style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.9rem;">
                     <div class="assistant-avatar">S</div>
                     <div>
-                        <div style="font-size:0.95rem; color:#eef4ff; font-weight:700;">Samantha</div>
-                        <div style="font-size:0.82rem; color:#9ab1d7;">Your AI research analyst</div>
+                        <div style="font-size:0.95rem; color:#eef4ff; font-weight:700;">Agent</div>
+                        <div style="font-size:0.82rem; color:#9ab1d7;">Your research assistant</div>
                     </div>
                 </div>
                 <div style="display:grid; gap:0.65rem;">
@@ -563,7 +563,7 @@ def render_workflow():
     st.markdown('''
         <div class="glass-card">
             <div class="card-title">Workflow live view</div>
-            <div class="card-subtitle">Samantha routes your question through the multi-agent process with transparency and energy.</div>
+            <div class="card-subtitle">The agent routes your question through the multi-agent process with transparency and energy.</div>
             <div class="workflow-board" style="margin-top:1.4rem;">
     ''' +
         node_html('Clarity', 'clarity', active, 'Validates query intent') +
@@ -585,7 +585,7 @@ def render_samantha_panel():
     validation_label = validation.capitalize() if validation else 'Pending'
     st.markdown(f'''
         <div class="glass-card assistant-panel">
-            <div class="card-title">Samantha overview</div>
+            <div class="card-title">Agent overview</div>
             <div class="assistant-status">
                 <div style="display:grid; gap:0.24rem;">
                     <strong>{agent_label(st.session_state.active_agent)} Agent</strong>
@@ -625,7 +625,7 @@ def render_activity_feed():
         st.markdown('''
             <div class="glass-card">
                 <div class="card-title">Activity feed</div>
-                <div class="card-subtitle">Samantha logs every workflow event so your demo feels alive and intentional.</div>
+                <div class="card-subtitle">The agent logs every workflow event so your demo feels alive and intentional.</div>
                 <div class="activity-feed" style="margin-top:1rem;">
                     <div class="activity-event event-info"><div class="event-dot"></div><div>
                         <div class="event-title">Ready for your first research prompt.</div>
@@ -638,7 +638,7 @@ def render_activity_feed():
         html = '''
             <div class="glass-card">
                 <div class="card-title">Activity feed</div>
-                <div class="card-subtitle">Samantha logs every workflow event so your demo feels alive and intentional.</div>
+                <div class="card-subtitle">The agent logs every workflow event so your demo feels alive and intentional.</div>
                 <div class="activity-feed" style="margin-top:1rem;">
         '''
         for event in st.session_state.activity_feed[:6]:
@@ -651,7 +651,7 @@ def render_chat_messages():
     st.markdown('<div class="glass-card chat-window"><div class="card-title">Conversation</div>', unsafe_allow_html=True)
     if not st.session_state.messages:
         st.markdown('''
-            <div style="color:#9fb4dd; padding:1rem 0;">Ask Samantha a business question to begin the research workflow.</div>
+            <div style="color:#9fb4dd; padding:1rem 0;">Ask the agent a business question to begin the research workflow.</div>
         ''', unsafe_allow_html=True)
     for msg in st.session_state.messages:
         if msg['role'] == 'user':
@@ -682,13 +682,13 @@ def render_chat_messages():
 
 
 def render_input_panel():
-    placeholder = 'Clarify the request...' if st.session_state.awaiting_clarification else 'Ask Samantha about a company, CEO, product, or market trend...'
+    placeholder = 'Clarify the request...' if st.session_state.awaiting_clarification else 'Ask the agent about a company, CEO, product, or market trend...'
     if 'pending_query' in st.session_state:
         st.session_state.query_input = st.session_state.pending_query
         st.session_state.pop('pending_query', None)
 
     user_input = st.text_input('Your research prompt', key='query_input', placeholder=placeholder, label_visibility='collapsed')
-    send = st.button('Send to Samantha →', use_container_width=True)
+    send = st.button('Send →', use_container_width=True)
 
     if send and user_input.strip():
         return user_input.strip()
@@ -699,7 +699,7 @@ def render_api_warning():
     st.markdown('''
         <div class="glass-card" style="border-left:4px solid #4d9fff; margin-bottom:1.5rem;">
             <div class="card-title">Setup required</div>
-            <div class="card-subtitle">Enter your Groq and Tavily API keys in the sidebar to unlock Samantha's full research capabilities.</div>
+            <div class="card-subtitle">Enter your Groq and Tavily API keys in the sidebar to unlock the agent's full research capabilities.</div>
         </div>
     ''', unsafe_allow_html=True)
 
@@ -707,7 +707,7 @@ def render_api_warning():
 # ── Initialize ───────────────────────────────────────────────────────────────
 init_session_state()
 if not st.session_state.activity_feed:
-    push_activity('Samantha is ready for a fresh research session.', 'info')
+    push_activity('Agent is ready for a fresh research session.', 'info')
 
 render_sidebar()
 render_hero()
@@ -734,12 +734,12 @@ if query_to_process and os.environ.get('GROQ_API_KEY') and os.environ.get('TAVIL
     st.session_state.lc_history.append(HumanMessage(content=query_to_process))
     if st.session_state.awaiting_clarification:
         st.session_state.active_agent = 'clarity'
-        push_activity('Samantha is validating the clarification before continuing.', 'info')
+        push_activity('Agent is validating the clarification before continuing.', 'info')
     else:
         st.session_state.active_agent = 'research'
-        push_activity('Samantha received your query and began research.', 'info')
+        push_activity('Agent received your query and began research.', 'info')
 
-    with st.spinner('Samantha is analyzing the workflow...'):
+    with st.spinner('Agent is analyzing the workflow...'):
         st.markdown('''
             <div class="thinking"><div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div></div>
         ''', unsafe_allow_html=True)
@@ -758,7 +758,7 @@ if query_to_process and os.environ.get('GROQ_API_KEY') and os.environ.get('TAVIL
                     'content': result['clarification_question'],
                 })
                 st.session_state.active_agent = 'clarity'
-                push_activity('Samantha detected ambiguity and requested clarification.', 'warning')
+                push_activity('Agent detected ambiguity and requested clarification.', 'warning')
                 st.session_state.lc_history.pop()
             else:
                 st.session_state.awaiting_clarification = False
@@ -770,7 +770,7 @@ if query_to_process and os.environ.get('GROQ_API_KEY') and os.environ.get('TAVIL
                     'attempts': result.get('research_attempts', 0),
                 })
                 st.session_state.lc_history.append(AIMessage(content=result['final_response']))
-                push_activity('Samantha synthesized the final intelligence report.', 'success')
+                push_activity('Agent synthesized the final intelligence report.', 'success')
                 validation_status = result.get('validation_result', 'pending')
                 if validation_status == 'insufficient':
                     push_activity('Validator suggested deeper research before finalizing.', 'warning')
@@ -783,4 +783,4 @@ if query_to_process and os.environ.get('GROQ_API_KEY') and os.environ.get('TAVIL
                 'confidence': 0,
                 'attempts': 0,
             })
-            push_activity('Samantha encountered an error while processing.', 'error')
+            push_activity('Agent encountered an error while processing.', 'error')

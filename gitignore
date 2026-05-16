@@ -1,0 +1,10 @@
+# Ignore environment files containing API keys and secrets
+.env
+.env.*
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Node modules for frontend
+frontend/node_modules/
